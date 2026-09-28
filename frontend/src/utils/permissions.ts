@@ -90,7 +90,7 @@ export const isRouteAllowed = (role: Role | undefined, path: string): boolean =>
 
   const routeRules: { prefix: string; roles: Role[] }[] = [
     { prefix: '/login', roles: ['SUPER_ADMIN', 'DEPT_ADMIN', 'ENGINEER', 'INSPECTOR', 'TECHNICIAN', 'VIEWER', 'CITIZEN'] },
-    { prefix: '/citizen-grievance', roles: ['CITIZEN', 'VIEWER', 'SUPER_ADMIN'] },
+    { prefix: '/citizen-grievance', roles: ['CITIZEN', 'VIEWER', 'ENGINEER', 'DEPT_ADMIN', 'SUPER_ADMIN'] },
     { prefix: '/gis-map', roles: ['CITIZEN', 'VIEWER', 'ENGINEER', 'DEPT_ADMIN', 'SUPER_ADMIN'] },
     { prefix: '/buildings', roles: ['CITIZEN', 'VIEWER', 'INSPECTOR', 'ENGINEER', 'DEPT_ADMIN', 'SUPER_ADMIN'] },
     { prefix: '/assets', roles: ['INSPECTOR', 'TECHNICIAN', 'ENGINEER', 'DEPT_ADMIN', 'SUPER_ADMIN'] },

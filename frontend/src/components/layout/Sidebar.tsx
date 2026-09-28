@@ -230,6 +230,7 @@ export const Sidebar: React.FC = () => {
               <div className="space-y-1">
                 <SidebarItem to="/maintenance" icon={<Wrench className="w-4 h-4 text-amber-400" />} label="Work Order Tickets" />
                 <SidebarItem to="/inspections" icon={<ClipboardCheck className="w-4 h-4 text-amber-400" />} label="Inspections Log" />
+                <SidebarItem to="/citizen-grievance" icon={<AlertCircle className="w-4 h-4 text-emerald-400" />} label="Citizen Grievances & Issues" badge="Civic" badgeColor="bg-emerald-500/20 text-emerald-300 border-emerald-500/30" />
                 <SidebarItem to="/reports" icon={<FileText className="w-4 h-4 text-indigo-400" />} label="Statewide Reports" />
               </div>
             </div>
