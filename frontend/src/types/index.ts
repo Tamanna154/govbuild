@@ -1,4 +1,4 @@
-export type Role = 'SUPER_ADMIN' | 'DEPT_ADMIN' | 'ENGINEER' | 'INSPECTOR' | 'TECHNICIAN' | 'VIEWER';
+export type Role = 'SUPER_ADMIN' | 'DEPT_ADMIN' | 'ENGINEER' | 'INSPECTOR' | 'TECHNICIAN' | 'VIEWER' | 'CITIZEN';
 export type PriorityLevel = 'LOW' | 'MEDIUM' | 'HIGH' | 'URGENT';
 export type RiskLevel = 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL';
 export type AssetStatus = 'OPERATIONAL' | 'UNDER_MAINTENANCE' | 'DEGRADED' | 'FAILED' | 'DECOMMISSIONED';
