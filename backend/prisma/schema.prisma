@@ -1,0 +1,459 @@
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+model Department {
+  id          String     @id @default(uuid())
+  code        String     @unique
+  name        String
+  description String?
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+  regions     Region[]
+  buildings   Building[]
+  users       User[]
+}
+
+model Region {
+  id           String       @id @default(uuid())
+  code         String
+  name         String
+  departmentId String
+  department   Department   @relation(fields: [departmentId], references: [id], onDelete: Cascade)
+  circles      Circle[]
+  buildings    Building[]
+}
+
+model Circle {
+  id        String     @id @default(uuid())
+  code      String
+  name      String
+  regionId  String
+  region    Region     @relation(fields: [regionId], references: [id], onDelete: Cascade)
+  divisions Division[]
+  buildings Building[]
+}
+
+model Division {
+  id           String        @id @default(uuid())
+  code         String
+  name         String
+  circleId     String
+  circle       Circle        @relation(fields: [circleId], references: [id], onDelete: Cascade)
+  subDivisions SubDivision[]
+  buildings    Building[]
+}
+
+model SubDivision {
+  id         String     @id @default(uuid())
+  code       String
+  name       String
+  divisionId String
+  division   Division   @relation(fields: [divisionId], references: [id], onDelete: Cascade)
+  buildings  Building[]
+}
+
+model User {
+  id           String      @id @default(uuid())
+  name         String
+  email        String      @unique
+  password     String
+  role         String      @default("ENGINEER")
+  departmentId String?
+  department   Department? @relation(fields: [departmentId], references: [id])
+  designation  String?
+  phone        String?
+  avatar       String?
+  createdAt    DateTime    @default(now())
+  updatedAt    DateTime    @updatedAt
+}
+
+model Building {
+  id                 String              @id @default(uuid())
+  buildingId         String              @unique
+  name               String
+  type               String
+  departmentId       String
+  department         Department          @relation(fields: [departmentId], references: [id])
+  regionId           String?
+  region             Region?             @relation(fields: [regionId], references: [id])
+  circleId           String?
+  circle             Circle?             @relation(fields: [circleId], references: [id])
+  divisionId         String?
+  division           Division?           @relation(fields: [divisionId], references: [id])
+  subDivisionId       String?
+  subDivision        SubDivision?        @relation(fields: [subDivisionId], references: [id])
+  district           String
+  taluka             String
+  address            String
+  latitude           Float
+  longitude          Float
+  constructionDate   DateTime?
+  constructionCost   Float?
+  builtUpArea        Float?
+  totalFloors        Int                 @default(1)
+  contractor         String?
+  architect          String?
+  structuralEngineer String?
+  completionDate     DateTime?
+  currentCondition   String              @default("Good")
+  currentHealthScore Float               @default(100)
+  status             String              @default("ACTIVE")
+  responsibleOfficer String?
+  contactInfo        String?
+  description        String?
+  createdAt          DateTime            @default(now())
+  updatedAt          DateTime            @updatedAt
+  systems            BuildingSystem[]
+  assets             Asset[]
+  documents          Document[]
+  tickets            MaintenanceTicket[]
+  alerts             Alert[]
+}
+
+model BuildingSystem {
+  id          String   @id @default(uuid())
+  systemCode  String
+  name        String
+  category    String
+  buildingId  String
+  building    Building @relation(fields: [buildingId], references: [id], onDelete: Cascade)
+  description String?
+  assets      Asset[]
+}
+
+model Vendor {
+  id               String        @id @default(uuid())
+  vendorId         String        @unique
+  companyName      String
+  contactPerson    String?
+  email            String?
+  phone            String?
+  address          String?
+  serviceTypes     String?
+  performanceScore Float         @default(100)
+  notes            String?
+  createdAt        DateTime      @default(now())
+  assets           Asset[]
+  warranties       Warranty[]
+  amcContracts     AMCContract[]
+}
+
+model AssetCategory {
+  id          String  @id @default(uuid())
+  code        String  @unique
+  name        String
+  description String?
+}
+
+model Asset {
+  id                      String   @id @default(uuid())
+  assetId                 String   @unique
+  name                    String
+  category                String
+  type                    String
+  buildingId              String
+  building                Building @relation(fields: [buildingId], references: [id], onDelete: Cascade)
+  systemId                String?
+  system                  BuildingSystem? @relation(fields: [systemId], references: [id])
+  manufacturer            String?
+  model                   String?
+  serialNumber            String?
+  vendorId                String?
+  vendor                  Vendor?  @relation(fields: [vendorId], references: [id])
+  purchaseDate            DateTime?
+  installationDate        DateTime?
+  commissioningDate       DateTime?
+  purchaseCost            Float?
+  installationCost        Float?
+  warrantyStartDate       DateTime?
+  warrantyEndDate         DateTime?
+  amcStartDate            DateTime?
+  amcEndDate              DateTime?
+  expectedLifeYears       Int      @default(10)
+  expectedEolDate         DateTime?
+  currentStatus           String   @default("OPERATIONAL")
+  currentHealthScore      Float    @default(100)
+  currentRiskScore        Float    @default(0)
+  riskLevel               String   @default("LOW")
+  criticalityLevel        String   @default("MEDIUM")
+  lastInspectionDate      DateTime?
+  nextScheduledInspection DateTime?
+  lastMaintenanceDate     DateTime?
+  nextScheduledMaintenance DateTime?
+  responsiblePerson       String?
+  locationInBuilding      String?
+  description             String?
+  qrCodeUrl               String?
+  createdAt               DateTime @default(now())
+  updatedAt               DateTime @updatedAt
+
+  warranties              Warranty[]
+  amcContracts            AMCContract[]
+  lifecycleEvents         LifecycleEvent[]
+  inspections             Inspection[]
+  healthHistory           AssetHealthHistory[]
+  riskHistory             AssetRiskHistory[]
+  maintenancePriorities   MaintenancePriority[]
+  outgoingDependencies    AssetDependency[] @relation("SourceAsset")
+  incomingDependencies    AssetDependency[] @relation("DependentAsset")
+  tickets                 MaintenanceTicket[]
+  failures                FailureRecord[]
+  documents               Document[]
+  alerts                  Alert[]
+  sensorReadings          SensorReading[]
+}
+
+model Warranty {
+  id                String   @id @default(uuid())
+  assetId           String
+  asset             Asset    @relation(fields: [assetId], references: [id], onDelete: Cascade)
+  vendorId          String?
+  vendor            Vendor?  @relation(fields: [vendorId], references: [id])
+  providerName      String
+  startDate         DateTime
+  endDate           DateTime
+  terms             String?
+  coveredComponents String?
+  status            String   @default("ACTIVE")
+  createdAt         DateTime @default(now())
+}
+
+model AMCContract {
+  id               String   @id @default(uuid())
+  contractNumber   String   @unique
+  assetId          String
+  asset            Asset    @relation(fields: [assetId], references: [id], onDelete: Cascade)
+  vendorId         String?
+  vendor            Vendor?  @relation(fields: [vendorId], references: [id])
+  startDate        DateTime
+  endDate          DateTime
+  contractValue    Float?
+  serviceFrequency String?
+  slaDetails       String?
+  status           String   @default("ACTIVE")
+  lastServiceDate  DateTime?
+  nextServiceDate  DateTime?
+  createdAt        DateTime @default(now())
+}
+
+model LifecycleEvent {
+  id          String   @id @default(uuid())
+  assetId     String
+  asset       Asset    @relation(fields: [assetId], references: [id], onDelete: Cascade)
+  eventType   String
+  eventDate   DateTime @default(now())
+  performedBy String?
+  description String
+  oldStatus   String?
+  newStatus   String?
+  documentId  String?
+  createdAt   DateTime @default(now())
+}
+
+model Inspection {
+  id                String                  @id @default(uuid())
+  inspectionId      String                  @unique
+  assetId           String
+  asset             Asset                   @relation(fields: [assetId], references: [id], onDelete: Cascade)
+  inspectorId       String?
+  inspectionDate    DateTime                @default(now())
+  physicalCondition String
+  temperature       Float?
+  vibration         Float?
+  noise             Float?
+  oilLevel          Float?
+  voltage           Float?
+  current           Float?
+  operatingHours    Float?
+  leakage           Boolean                 @default(false)
+  corrosion         Boolean                 @default(false)
+  damage            Boolean                 @default(false)
+  safetyStatus      String                  @default("PASS")
+  photos            String?
+  remarks           String?
+  recommendedAction String?
+  createdAt         DateTime                @default(now())
+  measurements      InspectionMeasurement[]
+}
+
+model InspectionMeasurement {
+  id            String     @id @default(uuid())
+  inspectionId  String
+  inspection    Inspection @relation(fields: [inspectionId], references: [id], onDelete: Cascade)
+  parameterName String
+  parameterValue Float
+  unit          String?
+  isAnomaly     Boolean    @default(false)
+}
+
+model AssetHealthHistory {
+  id              String   @id @default(uuid())
+  assetId         String
+  asset           Asset    @relation(fields: [assetId], references: [id], onDelete: Cascade)
+  healthScore     Float
+  conditionRating String
+  factorsJson     String?
+  recordedAt      DateTime @default(now())
+}
+
+model AssetRiskHistory {
+  id               String   @id @default(uuid())
+  assetId          String
+  asset            Asset    @relation(fields: [assetId], references: [id], onDelete: Cascade)
+  riskScore        Float
+  riskLevel        String
+  healthScore      Float
+  failureFrequency Int      @default(0)
+  ageYears         Float    @default(0)
+  dependencyImpact Float    @default(0)
+  riskFactorsJson  String?
+  recordedAt       DateTime @default(now())
+}
+
+model MaintenancePriority {
+  id            String   @id @default(uuid())
+  assetId       String
+  asset         Asset    @relation(fields: [assetId], references: [id], onDelete: Cascade)
+  priorityScore Float
+  priorityLevel String
+  reason        String
+  generatedAt   DateTime @default(now())
+  status        String   @default("ACTIVE")
+}
+
+model AssetDependency {
+  id               String   @id @default(uuid())
+  sourceAssetId    String
+  sourceAsset      Asset    @relation("SourceAsset", fields: [sourceAssetId], references: [id], onDelete: Cascade)
+  dependentAssetId String
+  dependentAsset  Asset    @relation("DependentAsset", fields: [dependentAssetId], references: [id], onDelete: Cascade)
+  relationshipType String   @default("POWER")
+  criticality      String   @default("HIGH")
+  description      String?
+  createdAt        DateTime @default(now())
+}
+
+model MaintenanceTicket {
+  id                   String            @id @default(uuid())
+  ticketId             String            @unique
+  assetId              String
+  asset                Asset             @relation(fields: [assetId], references: [id], onDelete: Cascade)
+  buildingId           String
+  building             Building          @relation(fields: [buildingId], references: [id], onDelete: Cascade)
+  problemDescription   String
+  priorityLevel        String            @default("MEDIUM")
+  riskScoreAtCreation  Float             @default(0)
+  status               String            @default("OPEN")
+  createdBy            String?
+  assignedOfficerId    String?
+  assignedTechnicianId String?
+  expectedCompletion   DateTime?
+  actualCompletion     DateTime?
+  repairDetails        String?
+  partsReplaced        String?
+  labourCost           Float             @default(0)
+  materialCost         Float             @default(0)
+  totalCost            Float             @default(0)
+  beforeHealthScore    Float?
+  beforeRiskScore      Float?
+  afterHealthScore     Float?
+  afterRiskScore       Float?
+  photoBeforeUrl       String?
+  photoAfterUrl        String?
+  technicianRemarks    String?
+  verificationStatus   String            @default("PENDING")
+  verifiedBy           String?
+  createdAt            DateTime          @default(now())
+  updatedAt            DateTime          @updatedAt
+  parts                MaintenancePart[]
+}
+
+model MaintenancePart {
+  id         String            @id @default(uuid())
+  ticketId   String
+  ticket     MaintenanceTicket @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+  partName   String
+  partNumber String?
+  quantity   Int               @default(1)
+  unitCost   Float             @default(0)
+  totalCost  Float             @default(0)
+}
+
+model FailureRecord {
+  id            String   @id @default(uuid())
+  assetId       String
+  asset         Asset    @relation(fields: [assetId], references: [id], onDelete: Cascade)
+  failureDate   DateTime @default(now())
+  failureType   String
+  symptoms      String?
+  rootCause     String?
+  downtimeHours Float    @default(0)
+  repairCost    Float    @default(0)
+  severity      String   @default("MEDIUM")
+  resolution    String?
+  technicianId  String?
+  createdAt     DateTime @default(now())
+}
+
+model Document {
+  id         String    @id @default(uuid())
+  documentId String    @unique
+  title      String
+  fileType   String
+  fileUrl    String
+  fileSize   Int       @default(0)
+  category   String
+  buildingId String?
+  building   Building? @relation(fields: [buildingId], references: [id])
+  assetId    String?
+  asset      Asset?    @relation(fields: [assetId], references: [id])
+  uploadedBy String?
+  createdAt  DateTime  @default(now())
+}
+
+model Alert {
+  id         String    @id @default(uuid())
+  alertId    String    @unique
+  alertType  String
+  priority   String    @default("BLUE")
+  title      String
+  message    String
+  buildingId String?
+  building   Building? @relation(fields: [buildingId], references: [id])
+  assetId    String?
+  asset      Asset?    @relation(fields: [assetId], references: [id])
+  isRead     Boolean   @default(false)
+  createdAt  DateTime  @default(now())
+}
+
+model AuditLog {
+  id        String   @id @default(uuid())
+  userId    String?
+  userName  String?
+  action    String
+  entity    String
+  entityId  String?
+  oldValues String?
+  newValues String?
+  ipAddress String?
+  timestamp DateTime @default(now())
+}
+
+model SensorReading {
+  id           String   @id @default(uuid())
+  assetId      String
+  asset        Asset    @relation(fields: [assetId], references: [id], onDelete: Cascade)
+  temperature  Float?
+  vibration    Float?
+  voltage      Float?
+  current      Float?
+  runtimeHours Float?
+  fuelLevel    Float?
+  recordedAt   DateTime @default(now())
+}
