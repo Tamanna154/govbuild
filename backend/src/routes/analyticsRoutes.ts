@@ -21,19 +21,40 @@ router.get('/dashboard', authenticateToken, async (req, res) => {
     const expiringWarranties = await prisma.warranty.count({ where: { endDate: { lte: thirtyDaysLater, gte: now } } });
     const expiringAMCs = await prisma.aMCContract.count({ where: { endDate: { lte: thirtyDaysLater, gte: now } } });
 
-    // Health Score breakdown
-    const assets = await prisma.asset.findMany({ select: { currentHealthScore: true, currentRiskScore: true, category: true, purchaseCost: true } });
+    // Health Score breakdown with detailed assets for click drilldown
+    const allAssetsForHealth = await prisma.asset.findMany({
+      select: {
+        id: true,
+        assetId: true,
+        name: true,
+        currentHealthScore: true,
+        currentRiskScore: true,
+        currentStatus: true,
+        category: true,
+        building: { select: { name: true, district: true } }
+      },
+      orderBy: { currentHealthScore: 'asc' }
+    });
+
+    const healthBreakdownDetails = {
+      excellent: allAssetsForHealth.filter(a => a.currentHealthScore >= 90),
+      good: allAssetsForHealth.filter(a => a.currentHealthScore >= 75 && a.currentHealthScore < 90),
+      moderate: allAssetsForHealth.filter(a => a.currentHealthScore >= 60 && a.currentHealthScore < 75),
+      poor: allAssetsForHealth.filter(a => a.currentHealthScore >= 40 && a.currentHealthScore < 60),
+      critical: allAssetsForHealth.filter(a => a.currentHealthScore < 40)
+    };
+
     const healthDistribution = {
-      excellent: assets.filter(a => a.currentHealthScore >= 90).length,
-      good: assets.filter(a => a.currentHealthScore >= 75 && a.currentHealthScore < 90).length,
-      moderate: assets.filter(a => a.currentHealthScore >= 60 && a.currentHealthScore < 75).length,
-      poor: assets.filter(a => a.currentHealthScore >= 40 && a.currentHealthScore < 60).length,
-      critical: assets.filter(a => a.currentHealthScore < 40).length
+      excellent: healthBreakdownDetails.excellent.length,
+      good: healthBreakdownDetails.good.length,
+      moderate: healthBreakdownDetails.moderate.length,
+      poor: healthBreakdownDetails.poor.length,
+      critical: healthBreakdownDetails.critical.length
     };
 
     // Category breakdown
     const categoryCounts: Record<string, number> = {};
-    assets.forEach(a => {
+    allAssetsForHealth.forEach(a => {
       categoryCounts[a.category] = (categoryCounts[a.category] || 0) + 1;
     });
 
@@ -42,6 +63,14 @@ router.get('/dashboard', authenticateToken, async (req, res) => {
       take: 5,
       orderBy: { failureDate: 'desc' },
       include: { asset: { include: { building: true } } }
+    });
+
+    // High Risk Priority Assets
+    const priorityRiskAssets = await prisma.asset.findMany({
+      where: { currentRiskScore: { gte: 50 } },
+      orderBy: { currentRiskScore: 'desc' },
+      take: 6,
+      include: { building: true }
     });
 
     res.json({
@@ -58,8 +87,10 @@ router.get('/dashboard', authenticateToken, async (req, res) => {
         expiringAMCs
       },
       healthDistribution,
+      healthBreakdownDetails,
       categoryCounts,
-      recentFailures
+      recentFailures,
+      priorityRiskAssets
     });
   } catch (err: any) {
     res.status(500).json({ error: err.message });

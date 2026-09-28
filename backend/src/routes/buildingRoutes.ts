@@ -107,39 +107,92 @@ router.get('/:id', authenticateToken, async (req, res) => {
   }
 });
 
+// List departments for dropdowns
+router.get('/departments', authenticateToken, async (req, res) => {
+  try {
+    const departments = await prisma.department.findMany({
+      orderBy: { name: 'asc' }
+    });
+    res.json(departments);
+  } catch (err: any) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 // Create building
 router.post('/', authenticateToken, async (req: AuthRequest, res) => {
   try {
     const data = req.body;
+    if (!data.name || !data.name.trim()) {
+      return res.status(400).json({ error: 'Building Name is required.' });
+    }
+
+    // Resolve departmentId (support UUID or code like 'DEPT-RNB')
+    let deptId = data.departmentId;
+    if (deptId) {
+      const dept = await prisma.department.findFirst({
+        where: {
+          OR: [
+            { id: deptId },
+            { code: deptId }
+          ]
+        }
+      });
+      if (dept) {
+        deptId = dept.id;
+      } else {
+        const firstDept = await prisma.department.findFirst();
+        deptId = firstDept ? firstDept.id : undefined;
+      }
+    } else {
+      const firstDept = await prisma.department.findFirst();
+      deptId = firstDept ? firstDept.id : undefined;
+    }
+
+    // Fallback: If no department exists at all, create one
+    if (!deptId) {
+      const createdDept = await prisma.department.create({
+        data: {
+          code: 'DEPT-RNB',
+          name: 'Roads & Buildings Department (R&B)',
+          description: 'Government of Gujarat'
+        }
+      });
+      deptId = createdDept.id;
+    }
+
     const count = await prisma.building.count();
-    const buildingId = data.buildingId || `BLD-${data.district?.substring(0, 3).toUpperCase() || 'GUJ'}-${(count + 1).toString().padStart(3, '0')}`;
+    const districtPrefix = (data.district || 'GUJ').substring(0, 3).toUpperCase().replace(/[^A-Z]/g, 'X');
+    const buildingId = data.buildingId || `BLD-${districtPrefix}-${(count + 1).toString().padStart(3, '0')}`;
 
     const building = await prisma.building.create({
       data: {
         buildingId,
-        name: data.name,
+        name: data.name.trim(),
         type: data.type || 'Government Office',
-        departmentId: data.departmentId,
+        departmentId: deptId,
         regionId: data.regionId || null,
         circleId: data.circleId || null,
         divisionId: data.divisionId || null,
         subDivisionId: data.subDivisionId || null,
-        district: data.district,
-        taluka: data.taluka,
-        address: data.address,
+        district: data.district || 'Gandhinagar',
+        taluka: data.taluka || data.district || 'Gandhinagar',
+        address: data.address || `${data.name}, ${data.district || 'Gandhinagar'}, Gujarat`,
         latitude: parseFloat(data.latitude) || 23.0225,
         longitude: parseFloat(data.longitude) || 72.5714,
         constructionDate: data.constructionDate ? new Date(data.constructionDate) : null,
         constructionCost: data.constructionCost ? parseFloat(data.constructionCost) : null,
-        builtUpArea: data.builtUpArea ? parseFloat(data.builtUpArea) : null,
-        totalFloors: parseInt(data.totalFloors) || 1,
-        contractor: data.contractor || null,
+        builtUpArea: data.builtUpArea ? parseFloat(data.builtUpArea) : 25000,
+        totalFloors: parseInt(data.totalFloors) || 4,
+        contractor: data.contractor || 'Gujarat State Construction Corporation',
         architect: data.architect || null,
         structuralEngineer: data.structuralEngineer || null,
         completionDate: data.completionDate ? new Date(data.completionDate) : null,
-        responsibleOfficer: data.responsibleOfficer || null,
+        responsibleOfficer: data.responsibleOfficer || 'Executive Engineer (R&B)',
         contactInfo: data.contactInfo || null,
-        description: data.description || null
+        description: data.description || null,
+        currentCondition: 'Good',
+        currentHealthScore: 90
       }
     });
 
@@ -147,6 +200,7 @@ router.post('/', authenticateToken, async (req: AuthRequest, res) => {
 
     res.status(201).json(building);
   } catch (err: any) {
+    console.error('Error creating building:', err);
     res.status(500).json({ error: err.message });
   }
 });
